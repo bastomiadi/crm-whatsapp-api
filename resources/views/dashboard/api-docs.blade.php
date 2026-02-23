@@ -15,8 +15,43 @@
     <!-- API Info Card -->
     <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
         <h3 class="font-semibold text-blue-800 mb-2">API Base URL</h3>
-        <code class="bg-white px-3 py-1 rounded text-blue-600">{{ url('/') }}</code>
+        <code class="bg-white px-3 py-1 rounded text-blue-600">{{ url('/') }}/new-api</code>
         <p class="text-sm text-blue-600 mt-2">All API endpoints require authentication via Laravel session. Include CSRF token in requests.</p>
+    </div>
+
+    <!-- Authentication API -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="p-6 border-b">
+            <h2 class="text-xl font-bold text-gray-800">Authentication API</h2>
+            <p class="text-gray-500 text-sm mt-1">Generate API tokens for authentication</p>
+        </div>
+        <div class="p-6 space-y-6">
+            <!-- Create Token -->
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
+                    <code class="text-sm">/new-api/create-token</code>
+                </div>
+                <p class="text-gray-600 text-sm mt-2">Generate an API token for authentication</p>
+                <div class="mt-3 bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
+                    <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
+  "email": "your_mail",
+  "password": "your_pass"
+}</code></pre>
+                </div>
+                <div class="mt-3 bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Response:</p>
+                    <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
+  "success": true,
+  "message": "Token created successfully",
+  "data": {
+    "token": "your_api_token_here"
+  }
+}</code></pre>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Sessions API -->
@@ -30,7 +65,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/sessions/connect</code>
+                    <code class="text-sm">/new-api/sessions/connect</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Create and connect a new WhatsApp session</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -47,7 +82,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/sessions/qr</code>
+                    <code class="text-sm">/new-api/sessions/qr</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Get QR code for session authentication</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -62,7 +97,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/sessions/delete</code>
+                    <code class="text-sm">/new-api/sessions/delete</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Delete a WhatsApp session</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -86,7 +121,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/text</code>
+                    <code class="text-sm">/new-api/send/text</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send a text message</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -103,7 +138,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/image</code>
+                    <code class="text-sm">/new-api/send/image</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send an image with optional caption</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -121,7 +156,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/document</code>
+                    <code class="text-sm">/new-api/send/document</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send a document file</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -139,7 +174,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/audio</code>
+                    <code class="text-sm">/new-api/send/audio</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send an audio file (voice note)</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -156,7 +191,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/location</code>
+                    <code class="text-sm">/new-api/send/location</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send a location</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -175,7 +210,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/contact</code>
+                    <code class="text-sm">/new-api/send/contact</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send a contact card</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -192,7 +227,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/send/poll</code>
+                    <code class="text-sm">/new-api/send/poll</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send a poll message</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -211,7 +246,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/check-number</code>
+                    <code class="text-sm">/new-api/check-number</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Check if a number is registered on WhatsApp</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -235,7 +270,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/bulk/text</code>
+                    <code class="text-sm">/new-api/bulk/text</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Send bulk text messages</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -260,7 +295,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/groups/create</code>
+                    <code class="text-sm">/new-api/groups/create</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Create a new group</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
@@ -276,7 +311,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/groups/participants/add</code>
+                    <code class="text-sm">/new-api/groups/participants/add</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Add participants to a group</p>
             </div>
@@ -284,7 +319,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/groups/participants/remove</code>
+                    <code class="text-sm">/new-api/groups/participants/remove</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Remove participants from a group</p>
             </div>
@@ -301,7 +336,7 @@
             <div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">POST</span>
-                    <code class="text-sm">/api/chats/messages</code>
+                    <code class="text-sm">/new-api/chats/messages</code>
                 </div>
                 <p class="text-gray-600 text-sm mt-2">Get chat messages</p>
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
