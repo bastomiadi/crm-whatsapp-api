@@ -123,4 +123,23 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Session Limit Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These options control the session limit feature for non-admin users.
+    | When enabled, non-admin users will be restricted to a maximum number
+    | of WhatsApp sessions defined by the limit option.
+    |
+    | session_limit_enabled: Enable or disable the session limit feature
+    | session_limit_max: Maximum sessions allowed for non-admin users (default: 1)
+    |
+    */
+
+    'session_limit' => [
+        'enabled' => env('SESSION_LIMIT_ENABLED', true),
+        'max' => env('SESSION_LIMIT_MAX', 1),
+    ],
+
 ];

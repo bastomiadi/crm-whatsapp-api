@@ -10,12 +10,21 @@
             <h1 class="text-2xl font-bold text-gray-800">Sessions</h1>
             <p class="text-gray-500 mt-1">Manage your WhatsApp sessions</p>
         </div>
+        @if($canAddSession)
         <button onclick="openCreateModal()" class="flex items-center space-x-2 px-4 py-2 bg-whatsapp-light text-white rounded-lg hover:bg-whatsapp-dark transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             <span>New Session</span>
         </button>
+        @else
+        <div class="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <span>Session limit reached ({{ $userSessionCount ?? 0 }}/{{ $sessionLimitMax }})</span>
+        </div>
+        @endif
     </div>
     
     <!-- Sessions Grid -->
@@ -99,13 +108,28 @@
                 </svg>
             </div>
             <h3 class="text-lg font-medium text-gray-800 mb-2">No Sessions Found</h3>
-            <p class="text-gray-500 mb-4">Create your first WhatsApp session to get started.</p>
+            <p class="text-gray-500 mb-4">
+                @if(!$canAddSession)
+                    You have reached the maximum session limit ({{ $sessionLimitMax }} session).
+                @else
+                    Create your first WhatsApp session to get started.
+                @endif
+            </p>
+            @if($canAddSession)
             <button onclick="openCreateModal()" class="inline-flex items-center space-x-2 px-4 py-2 bg-whatsapp-light text-white rounded-lg hover:bg-whatsapp-dark transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
                 <span>Create Session</span>
             </button>
+            @else
+            <div class="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <span>Session limit reached</span>
+            </div>
+            @endif
         </div>
         @endif
     </div>
@@ -185,8 +209,16 @@
 
 @push('scripts')
 <script>
+    const canAddSession = {{ $canAddSession ? 'true' : 'false' }};
+    const sessionLimitMax = {{ $sessionLimitMax ?? 1 }};
+    
     // Create Modal
     function openCreateModal() {
+        // Check if user can add session before opening modal
+        if (!canAddSession) {
+            showToast('You have reached the maximum session limit (' + sessionLimitMax + ' session). Contact admin for more sessions.', 'error');
+            return;
+        }
         document.getElementById('createModal').classList.remove('hidden');
     }
     
@@ -208,10 +240,16 @@
     document.getElementById('createForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Additional validation check before submitting
+        if (!canAddSession) {
+            showToast('You have reached the maximum session limit (' + sessionLimitMax + ' session). Contact admin for more sessions.', 'error');
+            return;
+        }
+        
         const sessionId = document.getElementById('newSessionId').value;
         const webhookUrlInput = this.querySelector('[name="webhookUrl"]');
         const webhookUrl = webhookUrlInput.value.trim();
-        const defaultWebhookUrl = '{{ $chateryWebhook ?? '' }}';
+        const defaultWebhookUrl = '{{ $chateryWebhook ?? "" }}';
         const currentUserId = {{ $currentUserId ?? 'null' }};
         
         let metadata = {};

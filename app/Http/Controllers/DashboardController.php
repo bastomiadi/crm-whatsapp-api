@@ -47,6 +47,14 @@ class DashboardController extends Controller
         $user = Auth::user();
         $canViewAll = $user && $user->canViewAllData();
         
+        // Get session limit settings from config
+        $sessionLimitEnabled = config('app.session_limit.enabled', true);
+        $sessionLimitMax = config('app.session_limit.max', 1);
+        
+        // Count user's sessions (for non-admin users, apply limit)
+        $userSessionCount = 0;
+        $canAddSession = true;
+        
         if (!$canViewAll && $user) {
             $userId = $user->id;
             if (isset($sessions['data'])) {
@@ -54,12 +62,16 @@ class DashboardController extends Controller
                     $metadata = $session['metadata'] ?? [];
                     return isset($metadata['created_by']) && $metadata['created_by'] == $userId;
                 });
+                // Count user's sessions for the limit
+                $userSessionCount = count($sessions['data']);
+                // Non-admin users can only have limited sessions (if enabled)
+                $canAddSession = !$sessionLimitEnabled || $userSessionCount < $sessionLimitMax;
             }
         }
         
         $currentUserId = Auth::id();
         $chateryWebhook = env('CHATERY_WEBHOOK', '');
-        return view('dashboard.sessions', compact('sessions', 'currentUserId', 'chateryWebhook'));
+        return view('dashboard.sessions', compact('sessions', 'currentUserId', 'chateryWebhook', 'canAddSession', 'sessionLimitMax', 'userSessionCount'));
     }
 
     public function connectSession(Request $request): JsonResponse
