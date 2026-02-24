@@ -154,9 +154,24 @@
             
             const result = await response.json();
             
+            // Handle different response formats
+            let groupsData = [];
             if (result.success && result.data) {
-                groups = result.data;
-                renderGroups(groups);
+                if (Array.isArray(result.data)) {
+                    groupsData = result.data;
+                } else if (Array.isArray(result.data.groups)) {
+                    groupsData = result.data.groups;
+                } else if (typeof result.data === 'object') {
+                    // Try common properties
+                    groupsData = result.data.groups || result.data.items || result.data.data || [];
+                }
+                
+                if (Array.isArray(groupsData)) {
+                    groups = groupsData;
+                    renderGroups(groups);
+                } else {
+                    document.getElementById('groupsContainer').innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">No groups found</div>';
+                }
             } else {
                 document.getElementById('groupsContainer').innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">No groups found</div>';
             }

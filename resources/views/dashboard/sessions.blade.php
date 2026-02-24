@@ -142,9 +142,10 @@
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Webhook URL (Optional)</label>
-                <input type="url" name="webhookUrl"
+                <input type="url" name="webhookUrl" id="webhookUrl"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-whatsapp-light focus:border-transparent"
-                    placeholder="https://your-server.com/webhook">
+                    placeholder="https://your-server.com/webhook"
+                    value="{{ $chateryWebhook ?? '' }}">
             </div>
             
             <div class="flex space-x-3 pt-4">
@@ -208,9 +209,9 @@
         e.preventDefault();
         
         const sessionId = document.getElementById('newSessionId').value;
-        const metadataField = this.querySelector('[name="metadata"]');
-        const metadataStr = metadataField ? metadataField.value : '';
-        const webhookUrl = this.querySelector('[name="webhookUrl"]').value;
+        const webhookUrlInput = this.querySelector('[name="webhookUrl"]');
+        const webhookUrl = webhookUrlInput.value.trim();
+        const defaultWebhookUrl = '{{ $chateryWebhook ?? '' }}';
         const currentUserId = {{ $currentUserId ?? 'null' }};
         
         let metadata = {};
@@ -219,18 +220,11 @@
         // Auto-add created_by to metadata
         metadata['created_by'] = currentUserId;
         
-        try {
-            if (metadataStr) {
-                const userMetadata = JSON.parse(metadataStr);
-                metadata = { ...metadata, ...userMetadata };
-            }
-        } catch (e) {
-            showToast('Invalid JSON in metadata', 'error');
-            return;
-        }
+        // Use webhook URL from input, or fall back to default from .env
+        const finalWebhookUrl = webhookUrl || defaultWebhookUrl;
         
-        if (webhookUrl) {
-            webhooks.push({ url: webhookUrl, events: [] });
+        if (finalWebhookUrl) {
+            webhooks.push({ url: finalWebhookUrl, events: [] });
         }
         
         try {

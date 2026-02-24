@@ -58,7 +58,8 @@ class DashboardController extends Controller
         }
         
         $currentUserId = Auth::id();
-        return view('dashboard.sessions', compact('sessions', 'currentUserId'));
+        $chateryWebhook = env('CHATERY_WEBHOOK', '');
+        return view('dashboard.sessions', compact('sessions', 'currentUserId', 'chateryWebhook'));
     }
 
     public function connectSession(Request $request): JsonResponse

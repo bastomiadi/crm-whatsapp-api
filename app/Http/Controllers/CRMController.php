@@ -221,6 +221,7 @@ class CRMController extends Controller
     public function updateContact(Request $request, Contact $contact): JsonResponse
     {
         $validated = $request->validate([
+            'phone' => 'sometimes|string|unique:contacts,phone,' . $contact->id,
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'company' => 'nullable|string|max:255',

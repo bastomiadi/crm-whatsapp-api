@@ -327,13 +327,8 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-whatsapp-light focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                    <input type="text" name="first_name" placeholder="John"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-whatsapp-light focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                    <input type="text" name="last_name" placeholder="Doe"
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" name="name" placeholder="John Doe"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-whatsapp-light focus:border-transparent">
                 </div>
             </div>
