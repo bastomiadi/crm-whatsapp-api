@@ -300,7 +300,7 @@
             
             <div class="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
                 @auth
-                    <div class="flex items-center justify-between">
+                    <div id="userSidebar" class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
                             <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                                 @if(Auth::user()->avatar && file_exists(public_path('storage/' . Auth::user()->avatar)))
@@ -370,7 +370,7 @@
         
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-            <div class="bg-white w-64 h-full">
+            <div class="bg-white w-80 h-full overflow-y-auto">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                     <h2 class="font-bold text-gray-800">Menu</h2>
                     <button id="close-menu-btn" class="p-2 rounded-lg hover:bg-gray-100">
@@ -379,14 +379,162 @@
                         </svg>
                     </button>
                 </div>
-                <nav class="p-4 space-y-1">
-                    <a href="{{ route('dashboard') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">Dashboard</a>
-                    <a href="{{ route('dashboard.sessions') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">Sessions</a>
-                    <a href="{{ route('dashboard.messaging') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">Messaging</a>
-                    <a href="{{ route('dashboard.bulk-messaging') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">Bulk Messaging</a>
-                    <a href="{{ route('dashboard.chat-history') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">Chat History</a>
-                    <a href="{{ route('dashboard.groups') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">Groups</a>
-                    <a href="{{ route('dashboard.websocket') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700">WebSocket</a>
+                <nav class="p-4 space-y-1 overflow-y-auto">
+                    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-4">WhatsApp</div>
+                    
+                    <a href="{{ route('dashboard') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard') || request()->routeIs('dashboard.index')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        <span>Dashboard</span>
+                    </a>
+                    
+                    <a href="{{ route('dashboard.sessions') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard.sessions')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <span>Sessions</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.chat.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.chat.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                        <span>Messaging</span>
+                    </a>
+                    
+                    <a href="{{ route('dashboard.bulk-messaging') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard.bulk-messaging')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        <span>Bulk Messaging</span>
+                    </a>
+                    
+                    <a href="{{ route('dashboard.chat-history') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard.chat-history')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        <span>Chat History</span>
+                    </a>
+                    
+                    <a href="{{ route('dashboard.groups') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard.groups')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        <span>Groups</span>
+                    </a>
+                    
+                    <a href="{{ route('dashboard.websocket') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard.websocket')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>WebSocket</span>
+                    </a>
+                    
+                    <a href="{{ route('dashboard.api-docs') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('dashboard.api-docs')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>RESTful API</span>
+                    </a>
+                    
+                    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2 px-4">CRM</div>
+                    
+                    <a href="{{ route('crm.dashboard') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.dashboard')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span>CRM Dashboard</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.contacts.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.contacts.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <span>Contacts</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.orders.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.orders.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                        <span>Orders</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.tickets.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.tickets.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                        <span>Tickets</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.campaigns.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.campaigns.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                        <span>Campaigns</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.automations.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.automations.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>Automations</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.chatbots.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.chatbots.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        <span>Chatbots</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.templates.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.templates.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                        <span>Templates</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.analytics') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.analytics')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span>Analytics</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.segments.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.segments.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        <span>Segments</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.products.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.products.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span>Products</span>
+                    </a>
+
+                    <a href="{{ route('crm.categories.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.categories.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                        <span>Categories</span>
+                    </a>
+                    
+                    <a href="{{ route('crm.quick-replies.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.quick-replies.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                        <span>Quick Replies</span>
+                    </a>
+
+                    <a href="{{ route('crm.tags.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.tags.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                        <span>Tags</span>
+                    </a>
+
+                    <a href="{{ route('crm.activity.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.activity.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Activity Log</span>
+                    </a>
+
+                    <a href="{{ route('crm.tasks.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.tasks.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                        <span>Tasks</span>
+                    </a>
+
+                    <a href="{{ route('crm.deals.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.deals.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span>Deals Pipeline</span>
+                    </a>
+
+                    <a href="{{ route('crm.surveys.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.surveys.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Surveys</span>
+                    </a>
+
+                    <a href="{{ route('crm.audit-logs.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.audit-logs.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>Audit Logs</span>
+                    </a>
+
+                    <a href="{{ route('crm.duplicates.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.duplicates.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <span>Duplicates</span>
+                    </a>
+
+                    @if(Auth::user()->canViewAllData())
+                    <a href="{{ route('crm.users.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.users.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <span>Users</span>
+                    </a>
+
+                    <a href="{{ route('crm.roles.index') }}" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 @if(request()->routeIs('crm.roles.*')) active @endif">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Roles & Permissions</span>
+                    </a>
+                    @endif
                 </nav>
             </div>
         </div>

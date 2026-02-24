@@ -20,7 +20,7 @@
     </div>
     @endif
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
+    <div id="chatPageHeader" class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Chat Messaging</h1>
             <p class="text-gray-500 mt-1">Manage customer conversations</p>

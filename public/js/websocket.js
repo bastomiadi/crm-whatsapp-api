@@ -510,20 +510,42 @@ var ChateryWebSocket = {
     
     // Update connection status indicator
     updateStatus: function(status, message) {
-        var statusEl = document.getElementById('ws-status');
+        // Remove existing status element if it exists (to reposition it correctly)
+        var existingEl = document.getElementById('ws-status');
+        if (existingEl) {
+            existingEl.remove();
+        }
         
-        if (!statusEl) {
-            // Create status indicator if not exists
-            var header = document.querySelector('.flex.items-center.justify-between');
-            if (header) {
-                var indicator = document.createElement('div');
-                indicator.id = 'ws-status';
-                indicator.className = 'flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium';
-                header.insertBefore(indicator, header.firstChild);
-                statusEl = indicator;
+        // Create status indicator - target the page header by ID
+        var header = document.getElementById('chatPageHeader');
+        
+        // If not found, try to find the main content header (avoid sidebar)
+        if (!header) {
+            var headers = document.querySelectorAll('.flex.items-center.justify-between');
+            for (var i = 0; i < headers.length; i++) {
+                // Skip sidebar headers
+                if (headers[i].id !== 'userSidebar' && !headers[i].closest('#userSidebar')) {
+                    header = headers[i];
+                    break;
+                }
             }
         }
         
+        if (header) {
+            var indicator = document.createElement('div');
+            indicator.id = 'ws-status';
+            indicator.className = 'flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium';
+            
+            // Insert after the title (first child div), before the buttons
+            var titleDiv = header.querySelector('div'); // The title div with h1
+            if (titleDiv) {
+                header.insertBefore(indicator, titleDiv.nextSibling);
+            } else {
+                header.insertBefore(indicator, header.firstChild);
+            }
+            var statusEl = indicator;
+        }
+
         if (statusEl) {
             var statusClasses = {
                 'connected': 'bg-green-100 text-green-800',
