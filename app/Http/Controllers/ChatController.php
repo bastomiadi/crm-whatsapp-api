@@ -87,6 +87,72 @@ class ChatController extends Controller
         }
     }
     
+    // Get conversations list for real-time refresh
+    public function getConversations(Request $request): JsonResponse
+    {
+        try {
+            $sessionId = $request->query('session');
+            $lastUpdate = $request->query('last_update', 0);
+            
+            // Get database conversations with relationships
+            $query = ChatConversation::with(['contact', 'assignedTo', 'latestMessage'])
+                ->active();
+                
+            if ($sessionId) {
+                $query->where('session_id', $sessionId);
+            }
+            
+            // Only get updated conversations since last update
+            if ($lastUpdate > 0) {
+                $query->where('updated_at', '>', date('Y-m-d H:i:s', $lastUpdate));
+            }
+            
+            $conversations = $query->orderBy('last_message_at', 'desc')
+                ->limit(50)
+                ->get();
+            
+            // Format conversations for JSON response
+            $formattedConversations = $conversations->map(function($conv) {
+                return [
+                    'id' => $conv->id,
+                    'phone' => $conv->phone,
+                    'name' => $conv->name,
+                    'session_id' => $conv->session_id,
+                    'contact_id' => $conv->contact_id,
+                    'assigned_to' => $conv->assigned_to,
+                    'status' => $conv->status,
+                    'unread_count' => $conv->unread_count,
+                    'last_message_at' => $conv->last_message_at ? $conv->last_message_at->toIso8601String() : null,
+                    'created_at' => $conv->created_at ? $conv->created_at->toIso8601String() : null,
+                    'updated_at' => $conv->updated_at ? $conv->updated_at->toIso8601String() : null,
+                    'is_api_only' => false,
+                    'latest_message' => $conv->latestMessage ? [
+                        'id' => $conv->latestMessage->id,
+                        'message' => $conv->latestMessage->message,
+                        'direction' => $conv->latestMessage->direction,
+                        'created_at' => $conv->latestMessage->created_at ? $conv->latestMessage->created_at->toIso8601String() : null,
+                    ] : null,
+                    'assigned_to_id' => $conv->assignedTo ? $conv->assignedTo->id : null,
+                ];
+            });
+            
+            // Get unread count
+            $unreadCount = ChatConversation::unread()->count();
+            
+            return response()->json([
+                'success' => true,
+                'conversations' => $formattedConversations,
+                'unread_count' => $unreadCount,
+                'timestamp' => time()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
     // Check for new messages (for polling)
     public function checkNewMessages(Request $request): JsonResponse
     {

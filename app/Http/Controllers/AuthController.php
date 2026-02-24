@@ -7,6 +7,7 @@ use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -33,10 +34,20 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
+        // Get user for email verification check (only if verification is enabled)
+        $user = User::where('email', $request->email)->first();
+        
+        // Check if email verification is enabled and method exists
+        if ($user && config('verify_email.enabled', false) && method_exists($user, 'hasVerifiedEmail') && !$user->hasVerifiedEmail()) {
+            throw ValidationException::withMessages([
+                'email' => ['Please verify your email address before logging in.'],
+            ]);
+        }
+
         $credentials = $request->only('email', 'password');
         $credentials['is_active'] = true;
 
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
+        if (Auth::guard('web')->attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
             
             return redirect()->intended(route('dashboard'))->with('success', 'Welcome back!');
@@ -46,13 +57,9 @@ class AuthController extends Controller
             'email' => ['The provided credentials are incorrect.'],
         ]);
     }
-
-    /**
-     * Handle logout
-     */
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -81,11 +88,14 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
+        // Check if email verification is enabled
+        $verificationEnabled = config('verify_email.enabled', false);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'is_active' => true,
+            'is_active' => !$verificationEnabled, // If verification is enabled, user is not active until verified
         ]);
 
         // Assign default role (agent)
@@ -94,7 +104,21 @@ class AuthController extends Controller
             $user->assignRole($defaultRole);
         }
 
-        Auth::login($user);
+        // If verification is enabled, send verification email and show notice
+        if ($verificationEnabled && method_exists($user, 'generateVerificationToken')) {
+            // Generate verification token and send email
+            $token = $user->generateVerificationToken();
+            Mail::to($user->email)->send(new \App\Mail\VerifyEmail($user, $token));
+
+            // Logout the user since they need to verify email first
+            Auth::guard('web')->logout();
+            $request->session()->flash('verified_email', $user->email);
+
+            return redirect()->route('login')->with('verification_notice', 'We have sent a verification link to your email. Please check your inbox and click the link to activate your account.');
+        }
+
+        // If verification is disabled, login directly
+        Auth::guard('web')->login($user);
 
         return redirect()->route('dashboard')->with('success', 'Account created successfully!');
     }
@@ -186,5 +210,44 @@ class AuthController extends Controller
             'token' => $token,
             'token_type' => 'Bearer'
         ]);
+    }
+
+    /**
+     * Verify user's email address
+     */
+    public function verifyEmail(Request $request)
+    {
+        $token = $request->route('token');
+        
+        $user = User::where('verification_token', $token)->first();
+
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Invalid verification token.');
+        }
+
+        // Mark email as verified
+        $user->markEmailAsVerified();
+
+        return redirect()->route('login')->with('success', 'Your email has been verified! You can now login to your account.');
+    }
+
+    /**
+     * Resend verification email
+     */
+    public function resendVerification(Request $request)
+    {
+        $user = Auth::user();
+
+        if (method_exists($user, 'hasVerifiedEmail') && $user->hasVerifiedEmail()) {
+            return redirect()->route('dashboard');
+        }
+
+        // Generate new verification token and send email
+        if (method_exists($user, 'generateVerificationToken')) {
+            $token = $user->generateVerificationToken();
+            Mail::to($user->email)->send(new \App\Mail\VerifyEmail($user, $token));
+        }
+
+        return back()->with('resent', true);
     }
 }

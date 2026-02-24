@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -25,6 +27,8 @@ class User extends Authenticatable
         'password',
         'avatar',
         'is_active',
+        'verification_token',
+        'email_verified_at',
     ];
 
     /**
@@ -153,5 +157,43 @@ class User extends Authenticatable
     public function canViewAllData(): bool
     {
         return $this->hasRole('admin');
+    }
+
+    /**
+     * Generate a verification token for the user.
+     */
+    public function generateVerificationToken(): string
+    {
+        $this->verification_token = Str::random(64);
+        $this->save();
+        return $this->verification_token;
+    }
+
+    /**
+     * Verify the user's email.
+     */
+    public function markEmailAsVerified(): bool
+    {
+        $this->email_verified_at = now();
+        $this->verification_token = null;
+        $this->is_active = true;
+        return $this->save();
+    }
+
+    /**
+     * Check if the user has verified their email.
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $token = $this->generateVerificationToken();
+        Mail::to($this->email)->send(new \App\Mail\VerifyEmail($this, $token));
     }
 }

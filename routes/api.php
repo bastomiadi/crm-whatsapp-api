@@ -3,12 +3,16 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\WebhookController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Webhook for Chatery (no auth required)
+Route::post('/webhook/chatery', [WebhookController::class, 'handle']);
 
 // Public routes - create API token (no middleware, allow guest)
 Route::post('/create-token', [AuthController::class, 'createApiToken'])->middleware('guest:sanctum');

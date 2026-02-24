@@ -73,6 +73,12 @@
                     </div>
                 @endif
 
+                @if(session('verification_notice'))
+                    <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded relative">
+                        {{ session('verification_notice') }}
+                    </div>
+                @endif
+
                 <div class="rounded-md shadow-sm -space-y-px">
                     <div>
                         <label for="email" class="sr-only">Email address</label>

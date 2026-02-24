@@ -3,11 +3,18 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return redirect('/login');
 });
+
+// Webhook route (outside auth - for Chatery to send updates)
+Route::post('/webhook/chatery', [WebhookController::class, 'handle'])->name('webhook.chatery');
+
+// SSE endpoint for real-time updates
+Route::get('/sse/chat', [WebhookController::class, 'sse'])->name('sse.chat');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -85,3 +92,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Email Verification Routes
+Route::get('/email/verify/{token}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+Route::post('/email/verify/resend', [AuthController::class, 'resendVerification'])->name('verification.resend');

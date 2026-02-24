@@ -333,7 +333,306 @@
 <script>
 // Make currentChatId accessible globally for WebSocket
 window.currentChatId = null;
-window.currentSession = '{{ $sessionId ?? "" }}';
+// Get session from URL parameter or PHP variable
+const urlParams = new URLSearchParams(window.location.search);
+window.currentSession = urlParams.get('session') || '{{ $sessionId ?? "" }}';
+
+// Auto-refresh conversation list every 3 seconds when session is selected
+// AND auto-refresh messages every 3 seconds when conversation is selected
+let conversationRefreshInterval = null;
+let messagesRefreshInterval = null;
+let lastConversationUpdate = 0;
+
+// Load conversations from API for real-time refresh
+async function loadConversationsFromApi(sessionId = null) {
+    try {
+        const url = '{{ route("crm.chat.conversations") }}' + (sessionId ? '?session=' + sessionId : '');
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success && result.conversations) {
+            renderRefreshedConversations(result.conversations);
+            
+            // Update unread count if changed
+            const unreadElement = document.querySelector('.bg-red-100 + .text-red-600, [class*="text-red-600"]');
+            if (unreadElement && result.unread_count !== undefined) {
+                updateUnreadCountDisplay(result.unread_count);
+            }
+            
+            lastConversationUpdate = result.timestamp;
+        }
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+    }
+}
+
+// Render refreshed conversations (merge with existing)
+function renderRefreshedConversations(conversations) {
+    const container = document.getElementById('conversationList');
+    if (!container || !conversations || conversations.length === 0) return;
+    
+    // Sort conversations by last_message_at
+    conversations.sort((a, b) => {
+        const dateA = new Date(a.last_message_at);
+        const dateB = new Date(b.last_message_at);
+        return dateB - dateA;
+    });
+    
+    // Build HTML for conversations
+    let html = '';
+    conversations.forEach(conv => {
+        const convId = conv.id || (conv.is_api_only ? 'api_' + conv.phone : null);
+        if (!convId) return;
+        
+        const unreadCount = conv.unread_count || 0;
+        const assignedTo = conv.assigned_to || (conv.assigned_to_id ?? null);
+        const isGroup = conv.is_group || false;
+        const profilePicture = conv.profile_picture || null;
+        const name = conv.name || conv.phone || 'Unknown';
+        const lastMessage = conv.latest_message?.message || conv.api_last_message || 'No messages';
+        const lastMessageAt = conv.last_message_at ? formatTimeAgo(conv.last_message_at) : '';
+        
+        html += `
+        <div onclick="selectConversation(${convId})" 
+             class="p-4 hover:bg-gray-50 cursor-pointer transition-colors conversation-item"
+             data-id="${convId}"
+             data-unread="${unreadCount}"
+             data-assigned="${assignedTo}"
+             data-is-group="${isGroup ? 'true' : 'false'}">
+            <div class="flex items-start space-x-3">
+                ${profilePicture 
+                    ? `<img src="${profilePicture}" alt="${name}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">`
+                    : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-gray-500"></i>
+                       </div>`
+                }
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-medium text-gray-800 truncate">${name}</h3>
+                        ${unreadCount > 0 ? `<span class="px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">${unreadCount}</span>` : ''}
+                    </div>
+                    <p class="text-sm text-gray-500 truncate">${lastMessage}</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs text-gray-400">${lastMessageAt}</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+    
+    if (html) {
+        container.innerHTML = html;
+    }
+}
+
+// Update unread count display
+function updateUnreadCountDisplay(count) {
+    // Find and update all unread count displays
+    const cards = document.querySelectorAll('.grid.grid-cols-1.md\\:grid-cols-4');
+    cards.forEach(card => {
+        const unreadElements = card.querySelectorAll('.text-red-600');
+        unreadElements.forEach(el => {
+            // Check if it's the unread count (usually in a stats card)
+            if (el.textContent.match(/^\\d+$/)) {
+                el.textContent = count;
+            }
+        });
+    });
+}
+
+// Format time for display
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return minutes + 'm ago';
+    if (hours < 24) return hours + 'h ago';
+    if (days < 7) return days + 'd ago';
+    
+    return date.toLocaleDateString();
+}
+
+function startConversationRefresh() {
+    if (conversationRefreshInterval) return;
+    
+    console.log('[Chat] Starting automatic conversation refresh');
+    conversationRefreshInterval = setInterval(function() {
+        const sessionId = window.currentSession || '{{ $sessionId ?? "" }}';
+        
+        // Always refresh database conversations (works with or without session)
+        if (typeof loadConversationsFromApi === 'function') {
+            loadConversationsFromApi(sessionId || null);
+        }
+        
+        // Also refresh API chats if session is selected
+        if (sessionId && typeof loadChatsFromApi === 'function') {
+            loadChatsFromApi(sessionId);
+        }
+    }, 3000); // Refresh every 3 seconds
+}
+
+function startMessagesRefresh() {
+    if (messagesRefreshInterval) return;
+    
+    console.log('[Chat] Starting automatic messages refresh');
+    messagesRefreshInterval = setInterval(function() {
+        if (window.currentChatId && window.currentSession) {
+            // Extract phone number properly from chatId
+            var phone = window.currentChatId.toString()
+                .replace('@lid', '')
+                .replace('@s.whatsapp.net', '')
+                .replace('@g.us', '')
+                .replace('lid:', '');
+            
+            // Create proper chatId for API (with @s.whatsapp.net)
+            var apiChatId = phone + '@s.whatsapp.net';
+            
+            console.log('[Chat] Polling messages for:', phone, 'chatId:', apiChatId);
+            
+            // Use loadMessagesFromApi with proper chatId format
+            if (typeof loadMessagesFromApi === 'function') {
+                loadMessagesFromApi(window.currentSession, apiChatId);
+            }
+        }
+    }, 2000); // Refresh every 2 seconds for faster real-time feel
+}
+
+function stopConversationRefresh() {
+    if (conversationRefreshInterval) {
+        clearInterval(conversationRefreshInterval);
+        conversationRefreshInterval = null;
+    }
+}
+
+function stopMessagesRefresh() {
+    if (messagesRefreshInterval) {
+        clearInterval(messagesRefreshInterval);
+        messagesRefreshInterval = null;
+    }
+}
+
+// SSE is disabled - using WebSocket and Polling for real-time updates instead
+let eventSource = null;
+
+function initSSE() {
+    console.log('[SSE] SSE is disabled - using WebSocket and Polling for real-time updates');
+    // SSE is disabled - WebSocket and Polling will handle real-time updates
+    return;
+}
+
+// Handle webhook events from SSE
+function handleWebhookEvent(data) {
+    console.log('[Chat] Handling webhook event:', data);
+    
+    const type = data.type;
+    const eventData = data.data || {};
+    const sessionId = data.sessionId;
+    
+    if (type === 'message') {
+        // Reload conversation list
+        if (typeof loadChatsFromApi === 'function') {
+            loadChatsFromApi(sessionId);
+        }
+        
+        // If viewing this conversation, append new message smoothly
+        const fromPhone = eventData.from ? eventData.from.replace('@s.whatsapp.net', '').replace('@g.us', '') : '';
+        const currentPhone = window.currentChatId ? window.currentChatId.replace('@s.whatsapp.net', '').replace('@g.us', '') : '';
+        
+        if (currentPhone && fromPhone === currentPhone) {
+            console.log('[Chat] Appending new message via SSE for:', fromPhone);
+            
+            // Create message object from webhook data
+            var newMessage = {
+                content: eventData.content || '',
+                caption: eventData.caption || '',
+                timestamp: eventData.timestamp || Math.floor(Date.now() / 1000),
+                fromMe: false, // Inbound message
+                from: eventData.from,
+                pushName: eventData.pushName
+            };
+            
+            // Check message type
+            if (eventData.type === 'imageMessage' || eventData.imageMessage) {
+                newMessage.content = { imageMessage: eventData.imageMessage || eventData };
+            } else if (eventData.type === 'documentMessage' || eventData.documentMessage) {
+                newMessage.content = { documentMessage: eventData.documentMessage || eventData };
+            } else if (eventData.type === 'audioMessage' || eventData.audioMessage) {
+                newMessage.content = { audioMessage: eventData.audioMessage || eventData };
+            } else if (eventData.type === 'videoMessage' || eventData.videoMessage) {
+                newMessage.content = { videoMessage: eventData.videoMessage || eventData };
+            }
+            
+            // Append the new message
+            if (typeof appendMessage === 'function') {
+                appendMessage(newMessage, currentProfilePicture);
+            } else if (typeof loadAndMergeMessages === 'function') {
+                // Fallback to reload if append function not available
+                loadAndMergeMessages(sessionId, window.currentChatId, fromPhone);
+            }
+        }
+        
+        // Show notification
+        const pushName = eventData.pushName || fromPhone;
+        const content = eventData.content || '';
+        showNewMessageNotification({ data: eventData }, fromPhone);
+    }
+}
+
+// Show notification for new message
+function showNewMessageNotification(msg, fromPhone) {
+    // Play notification sound
+    playNotificationSound();
+    
+    // Update unread count in header
+    updateUnreadCount();
+}
+
+// Play notification sound
+function playNotificationSound() {
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU' + 'A'.repeat(100));
+        audio.volume = 0.3;
+        audio.play().catch(e => {});
+    } catch (e) {
+        // Ignore audio errors
+    }
+}
+
+// Show browser notification if permission granted
+function showBrowserNotification(from, message) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('New Message from ' + from, {
+            body: message.substring(0, 100),
+            icon: '/favicon.ico'
+        });
+    }
+}
+
+// Request notification permission on page load
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+
+// Update unread count in stats
+async function updateUnreadCount() {
+    try {
+        const response = await fetch('{{ route("crm.chat.unread-count") }}');
+        const data = await response.json();
+        
+        const unreadElement = document.querySelector('.unread-count');
+        if (unreadElement && data.unread !== undefined) {
+            unreadElement.textContent = data.unread;
+        }
+    } catch (error) {
+        console.error('Error updating unread count:', error);
+    }
+}
 
 // Polling fallback for when WebSocket is not available
 let pollInterval = null;
@@ -368,7 +667,7 @@ async function checkForNewMessages() {
         const data = await response.json();
         
         if (data.new_messages && data.new_messages.length > 0) {
-            console.log('[Chat] New messages found:', data.new_messages.length);
+            console.log('[Chat] New messages found via polling:', data.new_messages.length);
             
             // Update lastMessageId
             const latestMsg = data.new_messages[data.new_messages.length - 1];
@@ -389,18 +688,67 @@ function handleNewMessage(msg, sessionId) {
     const fromPhone = msg.from ? msg.from.replace('@s.whatsapp.net', '').replace('@g.us', '') : '';
     const currentPhone = window.currentChatId ? window.currentChatId.replace('@s.whatsapp.net', '').replace('@g.us', '') : '';
     
-    // If viewing this conversation, reload messages
+    console.log('[Chat] handleNewMessage - from:', fromPhone, 'current:', currentPhone);
+    
+    // If viewing this conversation, append new message smoothly
     if (currentPhone && fromPhone === currentPhone) {
-        if (typeof loadMessagesFromApi === 'function') {
-            loadMessagesFromApi(sessionId, window.currentChatId);
+        console.log('[Chat] Appending new message via polling for active conversation:', fromPhone);
+        
+        // Append the new message
+        if (typeof appendMessage === 'function') {
+            appendMessage(msg, currentProfilePicture);
+        } else if (typeof loadAndMergeMessages === 'function') {
+            // Fallback to reload if append function not available
+            loadAndMergeMessages(sessionId, window.currentChatId, fromPhone);
         }
     } else {
-        // Show notification for new message
-        showNewMessageNotification(msg, fromPhone);
+        // Auto-switch to the conversation with new message and show it!
+        console.log('[Chat] Auto-opening conversation with new message from:', fromPhone);
+        
+        // If we have sessionId, try to select the chat automatically
+        if (sessionId && fromPhone) {
+            // Get the chat ID format for API
+            const chatId = fromPhone + '@s.whatsapp.net';
+            
+            // Get chat details from the conversation list to find profile picture
+            const conversationItem = document.querySelector(`[data-chat-id*="${fromPhone}"]`);
+            let profilePicture = null;
+            
+            // Try to find profile picture from conversation list
+            if (conversationItem) {
+                const img = conversationItem.querySelector('img');
+                if (img) {
+                    profilePicture = img.src;
+                }
+            }
+            
+            // Automatically select and show this conversation
+            // Use the database conversation ID format if available
+            selectApiChat(chatId, fromPhone, fromPhone, profilePicture);
+            
+            // Ensure chat container is visible
+            const chatContainer = document.querySelector('.chat-messages');
+            if (chatContainer) {
+                chatContainer.style.display = 'block';
+                chatContainer.style.visibility = 'visible';
+            }
+            
+            // Also show the sidebar if it's hidden
+            const chatList = document.querySelector('.chat-list');
+            if (chatList) {
+                chatList.style.display = 'block';
+            }
+            
+            // Show browser notification for new message
+            const messagePreview = msg.content ? msg.content.substring(0, 50) : 'New message';
+            if (typeof showBrowserNotification === 'function') {
+                showBrowserNotification(fromPhone, messagePreview);
+            }
+        }
     }
     
-    // Always reload conversation list
-    if (typeof loadChatsFromApi === 'function') {
+    // Always reload conversation list to show new message in real-time
+    if (sessionId && typeof loadChatsFromApi === 'function') {
         loadChatsFromApi(sessionId);
     }
 }
@@ -480,8 +828,9 @@ document.addEventListener('chatery.message', function(e) {
     
     var msgData = data.data;
     var fromPhone = msgData.from ? msgData.from.replace('@s.whatsapp.net', '').replace('@g.us', '') : '';
+    var sessionId = msgData.sessionId || window.currentSession;
     
-    console.log('[Chat] Message from:', fromPhone, 'Current chat:', window.currentChatId);
+    console.log('[Chat] Message from:', fromPhone, 'Current chat:', window.currentChatId, 'Session:', sessionId);
     
     // Get current viewing phone
     var currentPhone = '';
@@ -489,32 +838,92 @@ document.addEventListener('chatery.message', function(e) {
         currentPhone = window.currentChatId.replace('@s.whatsapp.net', '').replace('@g.us', '');
     }
     
-    // If viewing this conversation, reload messages
+    // If viewing this conversation, append new message smoothly
+    // Otherwise, auto-switch to the conversation with new message
     if (currentPhone && fromPhone === currentPhone) {
-        console.log('[Chat] Reloading messages for:', fromPhone);
-        if (typeof loadMessagesFromApi === 'function') {
-            loadMessagesFromApi(data.sessionId, window.currentChatId);
+        console.log('[Chat] Appending new message for:', fromPhone);
+        
+        // Create message object from WebSocket data
+        var newMessage = {
+            content: msgData.content || '',
+            caption: msgData.caption || '',
+            timestamp: msgData.timestamp || Math.floor(Date.now() / 1000),
+            fromMe: false, // Inbound message
+            from: msgData.from,
+            pushName: msgData.pushName
+        };
+        
+        // Check message type
+        if (msgData.type === 'imageMessage' || msgData.imageMessage) {
+            newMessage.content = { imageMessage: msgData.imageMessage || msgData };
+        } else if (msgData.type === 'documentMessage' || msgData.documentMessage) {
+            newMessage.content = { documentMessage: msgData.documentMessage || msgData };
+        } else if (msgData.type === 'audioMessage' || msgData.audioMessage) {
+            newMessage.content = { audioMessage: msgData.audioMessage || msgData };
+        } else if (msgData.type === 'videoMessage' || msgData.videoMessage) {
+            newMessage.content = { videoMessage: msgData.videoMessage || msgData };
         }
-        // Also try merge function if available
-        if (typeof loadAndMergeMessages === 'function') {
-            var phoneNumber = fromPhone;
-            loadAndMergeMessages(data.sessionId, window.currentChatId, phoneNumber);
+        
+        // Append the new message using the appendMessage function
+        if (typeof appendMessage === 'function') {
+            appendMessage(newMessage, currentProfilePicture);
+        } else if (typeof loadAndMergeMessages === 'function') {
+            // Fallback to reload if append function not available
+            loadAndMergeMessages(sessionId, window.currentChatId, fromPhone);
         }
     } else {
-        // Not viewing this conversation, just show notification
-        console.log('[Chat] Showing notification for new message from:', fromPhone);
+        // Auto-switch to the conversation with new message
+        console.log('[Chat] Auto-opening conversation with new message from:', fromPhone);
+        
+        if (sessionId && fromPhone) {
+            const chatId = fromPhone + '@s.whatsapp.net';
+            
+            // Get chat details from the conversation list to find profile picture
+            const conversationItem = document.querySelector(`[data-chat-id*="${fromPhone}"]`);
+            let profilePicture = null;
+            
+            // Try to find profile picture from conversation list
+            if (conversationItem) {
+                const img = conversationItem.querySelector('img');
+                if (img) {
+                    profilePicture = img.src;
+                }
+            }
+            
+            // Automatically select and show this conversation
+            selectApiChat(chatId, fromPhone, fromPhone, profilePicture);
+            
+            // Ensure chat container is visible (in case sidebar is hidden or minimized)
+            const chatContainer = document.querySelector('.chat-messages');
+            if (chatContainer) {
+                chatContainer.style.display = 'block';
+                chatContainer.style.visibility = 'visible';
+            }
+            
+            // Also show the sidebar if it's hidden
+            const chatList = document.querySelector('.chat-list');
+            if (chatList) {
+                chatList.style.display = 'block';
+            }
+            
+            // Show browser notification for new message
+            const messagePreview = msgData.content ? msgData.content.substring(0, 50) : 'New message';
+            if (typeof showBrowserNotification === 'function') {
+                showBrowserNotification(fromPhone, messagePreview);
+            }
+        }
     }
     
-    // Always reload conversation list to show new message
-    var sessionId = '{{ $sessionId ?? "" }}';
+    // Always reload conversation list to show new message in real-time
     if (sessionId && typeof loadChatsFromApi === 'function') {
+        console.log('[Chat] Reloading conversation list for session:', sessionId);
         loadChatsFromApi(sessionId);
     }
 });
 
 // Listen for conversation update events
-document.addEventListener('chatery.conversation.update', function() {
-    var sessionId = '{{ $sessionId ?? "" }}';
+document.addEventListener('chatery.conversation.update', function(e) {
+    var sessionId = window.currentSession || '{{ $sessionId ?? "" }}';
     if (sessionId && typeof loadChatsFromApi === 'function') {
         loadChatsFromApi(sessionId);
     }
@@ -522,7 +931,37 @@ document.addEventListener('chatery.conversation.update', function() {
 let currentConversation = null;
 let currentSession = '{{ $sessionId ?? "" }}';
 let currentChatId = null;
+let currentProfilePicture = null;
 let quickReplies = [];
+let lastLoadedMessageCount = 0;
+
+// Store profile picture globally when selecting a conversation
+function setCurrentProfilePicture(profilePicture) {
+    currentProfilePicture = profilePicture;
+    
+    // Also update the chat header with profile picture
+    const headerContainer = document.querySelector('#chatHeader .flex.items-center.space-x-3');
+    if (headerContainer) {
+        const existingImg = headerContainer.querySelector('img');
+        const existingDiv = headerContainer.querySelector('.rounded-full:not(.bg-whatsapp-light)');
+        
+        let profileHtml = '';
+        if (profilePicture) {
+            profileHtml = `<img src="${profilePicture}" alt="Profile" class="w-12 h-12 rounded-full object-cover">`;
+        } else {
+            profileHtml = `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                <i class="fas fa-user text-gray-500 text-lg"></i>
+            </div>`;
+        }
+        
+        // Replace the first child (either img or div)
+        if (existingImg) {
+            existingImg.outerHTML = profileHtml;
+        } else if (existingDiv) {
+            existingDiv.outerHTML = profileHtml;
+        }
+    }
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -531,29 +970,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // Request notification permission
     requestNotificationPermission();
     
+    // Initialize SSE for webhook-based real-time updates
+    initSSE();
+    
+    // Start automatic conversation list refresh (for real-time updates)
+    startConversationRefresh();
+    
     // Try to initialize WebSocket
     if (typeof ChateryWebSocket !== 'undefined') {
         try {
-            ChateryWebSocket.init();
-            console.log('[Chat] WebSocket initialized');
+            // Pass the current session to WebSocket
+            var wsSessionId = window.currentSession || '{{ $sessionId ?? "" }}';
+            ChateryWebSocket.init(wsSessionId);
+            console.log('[Chat] WebSocket initialized with session:', wsSessionId);
         } catch (e) {
-            console.log('[Chat] WebSocket init failed, using polling:', e);
-            // Fallback to polling if WebSocket fails
-            startPolling(5000);
+            console.log('[Chat] WebSocket init failed:', e);
         }
-    } else {
-        // WebSocket not available, use polling
-        startPolling(5000);
     }
     
-    // If session is selected, load chats from API
-    if (currentSession) {
-        loadChatsFromApi(currentSession);
+    // If session is selected (from URL or PHP), load chats from API
+    if (window.currentSession) {
+        loadChatsFromApi(window.currentSession);
     }
     
     // Cleanup on page leave
     window.addEventListener('beforeunload', function() {
+        stopConversationRefresh();
+        stopMessagesRefresh();
         stopPolling();
+        if (eventSource) {
+            eventSource.close();
+        }
     });
 });
 
@@ -637,6 +1084,34 @@ async function loadChatsFromApi(sessionId) {
     }
 }
 
+// Load contacts from API for real-time contact updates
+async function loadContactsFromApi(sessionId) {
+    try {
+        console.log('[Chat] Loading contacts for session:', sessionId);
+        const response = await fetch(`/crm/chat/contacts?session_id=${encodeURIComponent(sessionId)}`);
+        const result = await response.json();
+        console.log('[Chat] Contacts API response:', result);
+        
+        // Handle different response formats
+        let contactsData = [];
+        if (result.success) {
+            if (result.data && result.data.contacts) {
+                contactsData = result.data.contacts;
+            } else if (Array.isArray(result.data)) {
+                contactsData = result.data;
+            }
+        }
+        
+        console.log('[Chat] Contacts data:', contactsData);
+        
+        // Dispatch event for contact list update
+        var event = new CustomEvent('chatery.contacts.loaded', { detail: { contacts: contactsData, sessionId: sessionId } });
+        document.dispatchEvent(event);
+    } catch (error) {
+        console.error('[Chat] Error loading contacts from API:', error);
+    }
+}
+
 function renderApiChats(chats) {
     const container = document.getElementById('conversationList');
     
@@ -657,6 +1132,7 @@ function renderApiChats(chats) {
         
         // Profile picture HTML
         let profileHtml = '';
+        const profilePicValue = profilePicture ? profilePicture.replace(/'/g, "\\'") : '';
         if (profilePicture) {
             profileHtml = `<img src="${profilePicture}" alt="${name}" class="w-10 h-10 rounded-full object-cover">`;
         } else if (isGroup) {
@@ -670,7 +1146,7 @@ function renderApiChats(chats) {
         }
         
         return `
-        <div onclick="selectApiChat('${chatId}', '${name}', '${phone}')" 
+        <div onclick="selectApiChat('${chatId}', '${name}', '${phone}', '${profilePicValue}')" 
              class="p-4 hover:bg-gray-50 cursor-pointer transition-colors conversation-item"
              data-chat-id="${chatId}"
              data-unread="${unreadCount}"
@@ -705,9 +1181,18 @@ function formatTime(timestamp) {
     return date.toLocaleDateString();
 }
 
-async function selectApiChat(chatId, name, phone) {
+async function selectApiChat(chatId, name, phone, profilePicture = null) {
     currentChatId = chatId;
     currentConversation = null;
+    
+    // Set profile picture globally
+    currentProfilePicture = profilePicture;
+    
+    // Update header with profile picture
+    setCurrentProfilePicture(profilePicture);
+    
+    // Start auto-refresh for messages
+    startMessagesRefresh();
     
     // Extract phone number from chatId (remove @s.whatsapp.net)
     let phoneNumber = phone;
@@ -1090,6 +1575,140 @@ function renderApiMessages(messages) {
         </div>`;
     }).join('');
     
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+
+// Helper function to get profile picture HTML
+function getProfilePictureHtml(profilePicture) {
+    if (profilePicture) {
+        return `<img src="${profilePicture}" alt="Profile" class="w-8 h-8 rounded-full object-cover">`;
+    }
+    return `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-user text-gray-500 text-sm"></i>
+    </div>`;
+}
+
+// Function to append a single message (for real-time updates)
+function appendMessage(msg, profilePicture = null) {
+    const container = document.getElementById('messageList');
+    if (!container) return;
+    
+    const isFromMe = msg.fromMe || msg.direction === 'outbound';
+    
+    // Extract message content and type
+    let content = '';
+    let messageType = 'text';
+    let mediaUrl = '';
+    let caption = '';
+    
+    // Check for image
+    if (msg.content?.imageMessage || msg.message?.imageMessage) {
+        messageType = 'image';
+        mediaUrl = msg.content?.imageMessage?.url || msg.message?.imageMessage?.url || msg.content?.imageMessage?.thumbnailDirectPath || '';
+        caption = msg.content?.imageMessage?.caption || msg.message?.imageMessage?.caption || '';
+    }
+    // Check for document
+    else if (msg.content?.documentMessage || msg.message?.documentMessage) {
+        messageType = 'document';
+        mediaUrl = msg.content?.documentMessage?.url || msg.message?.documentMessage?.url || '';
+        const fileName = msg.content?.documentMessage?.fileName || msg.message?.documentMessage?.fileName || 'Document';
+        caption = msg.content?.documentMessage?.caption || msg.message?.documentMessage?.caption || fileName;
+    }
+    // Check for audio
+    else if (msg.content?.audioMessage || msg.message?.audioMessage) {
+        messageType = 'audio';
+        mediaUrl = msg.content?.audioMessage?.url || msg.message?.audioMessage?.url || '';
+    }
+    // Check for video
+    else if (msg.content?.videoMessage || msg.message?.videoMessage) {
+        messageType = 'video';
+        mediaUrl = msg.content?.videoMessage?.url || msg.message?.videoMessage?.url || '';
+        caption = msg.content?.videoMessage?.caption || msg.message?.videoMessage?.caption || '';
+    }
+    // Check for text message
+    else if (msg.content?.conversation) {
+        content = msg.content.conversation;
+    } else if (msg.message?.conversation) {
+        content = msg.message.conversation;
+    } else if (msg.content?.extendedTextMessage?.text) {
+        content = msg.content.extendedTextMessage.text;
+    } else if (msg.message?.extendedTextMessage?.text) {
+        content = msg.message.extendedTextMessage.text;
+    } else if (msg.content?.text) {
+        content = msg.content.text;
+    } else if (msg.message?.text) {
+        content = msg.message.text;
+    } else if (msg.body) {
+        content = msg.body;
+    } else if (msg.text) {
+        content = msg.text;
+    } else if (msg.content && typeof msg.content === 'string') {
+        content = msg.content;
+    } else if (msg.message && typeof msg.message === 'string') {
+        content = msg.message;
+    }
+    
+    // Format timestamp
+    let timeStr = '';
+    if (msg.timestamp) {
+        const date = new Date(msg.timestamp * 1000);
+        timeStr = date.toLocaleTimeString();
+    }
+    
+    // Render based on message type
+    let messageContent = '';
+    
+    if (messageType === 'image' && mediaUrl) {
+        messageContent = `
+            ${caption ? `<p class="mb-2">${caption}</p>` : ''}
+            <img src="${mediaUrl}" alt="Image" class="max-w-full rounded" style="max-height: 200px;" onclick="window.open('${mediaUrl}', '_blank')">
+        `;
+    } else if (messageType === 'document' && mediaUrl) {
+        messageContent = `
+            <a href="${mediaUrl}" target="_blank" class="flex items-center p-2 bg-gray-100 rounded hover:bg-gray-200">
+                <i class="fas fa-file text-blue-500 text-xl mr-2"></i>
+                <span class="text-blue-600 text-sm">${caption || 'Document'}</span>
+            </a>
+        `;
+    } else if (messageType === 'audio' && mediaUrl) {
+        messageContent = `
+            <audio controls class="w-full h-10">
+                <source src="${mediaUrl}" type="audio/ogg">
+                Your browser does not support the audio element.
+            </audio>
+        `;
+    } else if (messageType === 'video' && mediaUrl) {
+        messageContent = `
+            ${caption ? `<p class="mb-2">${caption}</p>` : ''}
+            <video src="${mediaUrl}" controls class="max-w-full rounded" style="max-height: 200px;"></video>
+        `;
+    } else {
+        messageContent = `<p>${content || '[Message]'}</p>`;
+    }
+    
+    // Use provided profilePicture or fallback to currentProfilePicture
+    const profilePic = profilePicture || currentProfilePicture;
+    
+    const messageHtml = `
+    <div class="flex mb-4 ${isFromMe ? 'justify-end' : 'justify-start'}">
+        ${!isFromMe ? `
+        <div class="flex-shrink-0 mr-2">
+            ${getProfilePictureHtml(profilePic)}
+        </div>
+        ` : ''}
+        <div class="max-w-[70%] ${isFromMe ? 'bg-whatsapp-light text-white' : 'bg-gray-100 text-gray-800'} rounded-lg px-4 py-2">
+            ${messageContent}
+            <p class="text-xs ${isFromMe ? 'text-white opacity-70' : 'text-gray-400'} mt-1">
+                ${timeStr}
+            </p>
+        </div>
+    </div>`;
+    
+    // Append to container
+    container.insertAdjacentHTML('beforeend', messageHtml);
+    
+    // Scroll to bottom
     container.scrollTop = container.scrollHeight;
 }
 
@@ -1369,12 +1988,19 @@ async function selectConversation(id) {
         document.getElementById('chatUserName').textContent = phoneNumber;
         document.getElementById('chatUserPhone').textContent = phoneNumber;
         
+        // Reset profile picture for API-only chats
+        setCurrentProfilePicture(null);
+        
         // Try to find database conversation by phone
         try {
             const dbResponse = await fetch(`/crm/chat/by-phone/${encodeURIComponent(phoneNumber)}`);
             const dbResult = await dbResponse.json();
             if (dbResult.success) {
                 currentConversation = dbResult.data.id;
+                // Set profile picture from contact if available
+                if (dbResult.data.profile_picture) {
+                    setCurrentProfilePicture(dbResult.data.profile_picture);
+                }
             }
         } catch (e) {
             console.log('No database conversation');
@@ -1404,6 +2030,13 @@ async function selectConversation(id) {
             document.getElementById('chatUserName').textContent = conversation.name || conversation.phone;
             document.getElementById('chatUserPhone').textContent = conversation.phone;
             
+            // Set profile picture from conversation
+            if (conversation.profile_picture) {
+                setCurrentProfilePicture(conversation.profile_picture);
+            } else if (conversation.contact && conversation.contact.avatar) {
+                setCurrentProfilePicture(conversation.contact.avatar);
+            }
+            
             // Mark as read
             await fetch(`/crm/chat/${id}/read`, { method: 'POST' });
             
@@ -1422,16 +2055,23 @@ function renderMessages(messages) {
         return;
     }
     
-    container.innerHTML = messages.map(msg => `
-        <div class="flex mb-4 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-[70%] ${msg.direction === 'outbound' ? 'bg-whatsapp-light text-white' : 'bg-gray-100 text-gray-800'} rounded-lg px-4 py-2">
+    container.innerHTML = messages.map(msg => {
+        const isFromMe = msg.direction === 'outbound';
+        return `
+        <div class="flex mb-4 ${isFromMe ? 'justify-end' : 'justify-start'}">
+            ${!isFromMe ? `
+            <div class="flex-shrink-0 mr-2">
+                ${getProfilePictureHtml(currentProfilePicture)}
+            </div>
+            ` : ''}
+            <div class="max-w-[70%] ${isFromMe ? 'bg-whatsapp-light text-white' : 'bg-gray-100 text-gray-800'} rounded-lg px-4 py-2">
                 <p>${msg.message}</p>
-                <p class="text-xs ${msg.direction === 'outbound' ? 'text-white opacity-70' : 'text-gray-400'} mt-1">
+                <p class="text-xs ${isFromMe ? 'text-white opacity-70' : 'text-gray-400'} mt-1">
                     ${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </p>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
     
     container.scrollTop = container.scrollHeight;
 }
@@ -1680,6 +2320,7 @@ function filterConversations(type) {
 }
 
 function filterBySession(sessionId) {
+    window.currentSession = sessionId;
     if (sessionId) {
         // Load from Chatery API
         window.location.href = `{{ route('crm.chat.index') }}?session=${encodeURIComponent(sessionId)}`;

@@ -205,6 +205,7 @@ Route::delete('/crm/tasks/{task}', [CRMController::class, 'destroyTask'])->name(
 Route::get('/crm/chat', [\App\Http\Controllers\ChatController::class, 'index'])->name('crm.chat.index');
 Route::get('/crm/chat/test-api', [\App\Http\Controllers\ChatController::class, 'testApi'])->name('crm.chat.test-api');
 Route::get('/crm/chat/check-new-messages', [\App\Http\Controllers\ChatController::class, 'checkNewMessages'])->name('crm.chat.check-new-messages');
+Route::get('/crm/chat/conversations', [\App\Http\Controllers\ChatController::class, 'getConversations'])->name('crm.chat.conversations');
 Route::get('/crm/chat/unread-count', [\App\Http\Controllers\ChatController::class, 'getUnreadCount'])->name('crm.chat.unread-count');
 Route::get('/crm/chat/sessions', [\App\Http\Controllers\ChatController::class, 'getSessionsList'])->name('crm.chat.sessions');
 Route::get('/crm/chat/chats', [\App\Http\Controllers\ChatController::class, 'getChats'])->name('crm.chat.chats');
