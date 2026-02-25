@@ -72,7 +72,7 @@
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
   "sessionId": "my_session",
-  "metadata": {"created_by": 1},
+  "metadata": {"created_by": your_id_user},
   "webhooks": [{"url": "https://example.com/webhook", "events": []}]
 }</code></pre>
                 </div>
@@ -127,9 +127,11 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
-  "message": "Hello!"
+  "sessionId": "mysession",
+  "chatId": "628123456789",
+  "message": "Hello World!",
+  "typingTime": 2000, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -144,10 +146,12 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
-  "image": "https://example.com/image.jpg",
-  "caption": "Image description"
+  "sessionId": "string",
+  "chatId": "string",
+  "imageUrl": "https://example.com/image.jpg",
+  "caption": "string",
+  "typingTime": 0, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -162,10 +166,14 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
-  "document": "https://example.com/file.pdf",
-  "fileName": "document.pdf"
+  "sessionId": "string",
+  "chatId": "string",
+  "documentUrl": "https://example.com/document.pdf",
+  "filename": "document.pdf",
+  "mimetype": "application/pdf",
+  "caption": "Here is the document you requested",
+  "typingTime": 0, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -180,9 +188,12 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
-  "audio": "https://example.com/audio.mp3"
+  "sessionId": "string",
+  "chatId": "string",
+  "audioUrl": "https://example.com/audio.ogg",
+  "ptt": false,
+  "typingTime": 0, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -197,11 +208,13 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
+  "sessionId": "string",
+  "chatId": "string",
   "latitude": -6.2088,
   "longitude": 106.8456,
-  "title": "Location Name"
+  "name": "Jakarta",
+  "typingTime": 0, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -216,9 +229,12 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
-  "contactId": "contact_id"
+  "sessionId": "string",
+  "chatId": "string",
+  "contactName": "John Doe",
+  "contactPhone": "628987654321",
+  "typingTime": 0, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -233,11 +249,18 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phone": "1234567890",
-  "question": "What do you prefer?",
-  "options": ["Option 1", "Option 2", "Option 3"],
-  "selectableCount": 1
+  "sessionId": "string",
+  "chatId": "string",
+  "question": "What is your favorite color?",
+  "options": [
+    "Red",
+    "Blue",
+    "Green",
+    "Yellow"
+  ],
+  "selectableCount": 1,
+  "typingTime": 0, (optional)
+  "replyTo": "3EB0B430A2B52B67D0" (optional)
 }</code></pre>
                 </div>
             </div>
@@ -276,9 +299,15 @@
                 <div class="mt-3 bg-gray-50 p-4 rounded-lg">
                     <p class="text-sm font-medium text-gray-700 mb-2">Request Body:</p>
                     <pre class="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto"><code>{
-  "sessionId": "my_session",
-  "phones": ["1234567890", "0987654321"],
-  "message": "Bulk message!"
+  "sessionId": "mysession",
+  "recipients": [
+    "628123456789",
+    "628987654321",
+    "628111222333"
+  ],
+  "message": "Hello! This is a bulk message.",
+  "delayBetweenMessages": 1000, (optional)
+  "typingTime": 0 (optional)
 }</code></pre>
                 </div>
             </div>
